@@ -2,12 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>AHMEDZ HUB | Fashion & Lifestyle</title>
   <!-- Fonts & Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <!-- Custom Styles -->
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -39,19 +38,20 @@
   <!-- ===== MAIN CONTENT ===== -->
   <div id="appContainer" class="container"></div>
 
-  <!-- ===== FOOTER with SOCIAL ICONS ===== -->
+  <!-- ===== FOOTER WITH SOCIAL ICONS ===== -->
   <footer>
-    <div class="footer-socials">
-      <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
-      <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
-      <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
-      <a href="#" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
-      <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+    <div class="footer-content">
+      <div class="footer-social">
+        <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+        <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+        <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+        <a href="#" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+      </div>
+      <p>&copy; 2025 AHMEDZ HUB — Elegance & Comfort | Uganda</p>
     </div>
-    <p>&copy; 2025 AHMEDZ HUB — Elegance & Comfort | Uganda</p>
   </footer>
 
-  <!-- ===== CART SIDEBAR (with Payment Methods) ===== -->
+  <!-- ===== CART SIDEBAR ===== -->
   <div id="cartSidebar" class="cart-sidebar">
     <div class="cart-header">
       <span>🛍️ Your Shopping Bag</span>
@@ -60,20 +60,27 @@
     <div id="cartItemsList"></div>
     <div class="cart-total" id="cartTotal">Total: UGX 0</div>
     <div class="delivery-date" id="deliveryEstimate">🚚 Est. delivery: 5 business days</div>
-
-    <!-- PAYMENT METHODS -->
-    <div class="payment-section">
-      <strong>💳 Payment Method</strong>
-      <label><input type="radio" name="payment" value="Mobile Money (MTN/Airtel)" checked /> Mobile Money (MTN/Airtel)</label>
-      <label><input type="radio" name="payment" value="Credit/Debit Card" /> Credit/Debit Card</label>
-      <label><input type="radio" name="payment" value="Cash on Delivery" /> Cash on Delivery</label>
-    </div>
-
     <div id="upsellArea">
       <strong>✨ Complete your look</strong>
       <div id="upsellSuggestions"></div>
     </div>
-    <button id="checkoutButton" class="checkout-btn">✅ Checkout & Get Receipt</button>
+    <!-- Payment method selection (hidden initially) -->
+    <div id="paymentSection" style="display:none; margin-top:15px;">
+      <h4>💳 Select Payment Method</h4>
+      <div class="payment-options">
+        <label class="payment-option">
+          <input type="radio" name="paymentMethod" value="mobile-money" checked /> Mobile Money (MTN/Airtel)
+        </label>
+        <label class="payment-option">
+          <input type="radio" name="paymentMethod" value="card" /> Credit/Debit Card
+        </label>
+        <label class="payment-option">
+          <input type="radio" name="paymentMethod" value="cash" /> Cash on Delivery
+        </label>
+      </div>
+      <button id="confirmPaymentBtn" class="checkout-btn">✅ Confirm & Pay</button>
+    </div>
+    <button id="checkoutButton" class="checkout-btn">✅ Checkout</button>
   </div>
 
   <!-- ===== AUTH MODAL ===== -->
