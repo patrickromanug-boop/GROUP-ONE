@@ -91,6 +91,9 @@ function renderCartSidebar() {
     container.innerHTML = "<p>Your bag is empty ✨</p>";
     document.getElementById('cartTotal').innerHTML = "Total: UGX 0";
     document.getElementById('upsellSuggestions').innerHTML = "";
+    // Hide payment section if visible
+    document.getElementById('paymentSection').style.display = 'none';
+    document.getElementById('checkoutButton').style.display = 'block';
     return;
   }
 
@@ -103,7 +106,7 @@ function renderCartSidebar() {
         <div><b>${item.name}</b> x${item.qty}</div>
         <div>
           UGX ${(item.price * item.qty).toLocaleString()}
-          <button class='remove-item' data-id='${item.id}' style='margin-left:12px;background:#a0341f;padding:4px 10px;border-radius:30px;border:none;color:white;cursor:pointer;'>🗑️</button>
+          <button class='remove-item' data-id='${item.id}' style='margin-left:12px;background:#a0341f;padding:4px 10px;border-radius:30px;'>🗑️</button>
         </div>
       </div>
     `;
@@ -118,12 +121,12 @@ function renderCartSidebar() {
   const upsellHtml = upsell.map(p => `
     <div style="display:flex; justify-content:space-between; margin:8px 0;">
       <span>${p.name}</span>
-      <button class="addUpsell" data-id="${p.id}" data-name="${p.name}" data-price="${p.price}" style="background:#410303;color:white;border:none;padding:4px 12px;border-radius:30px;cursor:pointer;">+ Add</button>
+      <button class="addUpsell" data-id="${p.id}" data-name="${p.name}" data-price="${p.price}">+ Add</button>
     </div>
   `).join('');
   document.getElementById('upsellSuggestions').innerHTML = upsellHtml;
 
-  // Remove events
+  // Event listeners for remove
   document.querySelectorAll('.remove-item').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = parseInt(btn.dataset.id);
@@ -134,7 +137,7 @@ function renderCartSidebar() {
     });
   });
 
-  // Upsell add events
+  // Event listeners for upsell add
   document.querySelectorAll('.addUpsell').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = parseInt(btn.dataset.id);
@@ -151,11 +154,11 @@ function renderCartSidebar() {
 }
 
 // ============================================================
-//  CHECKOUT / RECEIPT (with payment method)
+//  CHECKOUT / RECEIPT with Payment
 // ============================================================
 function generateReceipt(orderTotal, items, paymentMethod) {
   const receipt = `
-🏷️ MODASTYLE RECEIPT 🏷️
+🏷️ AHMEDZ HUB RECEIPT 🏷️
 ━━━━━━━━━━━━━━━━━━━━━
 Date: ${new Date().toLocaleString()}
 Customer: ${currentUser?.name || 'Guest'} (${currentUser?.email || 'guest'})
@@ -165,8 +168,8 @@ Items:
 ${items.map(i => `  ✦ ${i.name} x${i.qty} = UGX ${(i.price * i.qty).toLocaleString()}`).join('\n')}
 ━━━━━━━━━━━━━━━━━━━━━
 TOTAL: UGX ${orderTotal.toLocaleString()}
-💳 Payment Successful via ${paymentMethod}!
-Thank you for shopping at ModaStyle!`;
+💳 Payment Successful!
+Thank you for shopping at AHMEDZ HUB!`;
   alert(receipt);
 
   // Store order
@@ -182,8 +185,45 @@ Thank you for shopping at ModaStyle!`;
   });
   localStorage.setItem('orders', JSON.stringify(orders));
 
+  // Clear cart
+  cart = [];
+  saveCart();
+  document.getElementById('cartSidebar').classList.remove('open');
   if (currentUser?.isAdmin) refreshAdminDashboard();
 }
+
+// Handle checkout button - show payment selection
+document.getElementById('checkoutButton')?.addEventListener('click', () => {
+  if (cart.length === 0) {
+    alert("Add items to your bag first ❤️");
+    return;
+  }
+  if (!currentUser) {
+    alert("Please login to complete purchase");
+    openAuthModal();
+    return;
+  }
+  // Show payment section and hide checkout button
+  document.getElementById('paymentSection').style.display = 'block';
+  document.getElementById('checkoutButton').style.display = 'none';
+});
+
+// Confirm payment and finalize order
+document.getElementById('confirmPaymentBtn')?.addEventListener('click', () => {
+  const selected = document.querySelector('input[name="paymentMethod"]:checked');
+  if (!selected) {
+    alert("Please select a payment method.");
+    return;
+  }
+  const paymentMethod = selected.value;
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  generateReceipt(total, cart, paymentMethod);
+  // Reset payment section visibility
+  document.getElementById('paymentSection').style.display = 'none';
+  document.getElementById('checkoutButton').style.display = 'block';
+  // Close sidebar after receipt
+  document.getElementById('cartSidebar').classList.remove('open');
+});
 
 // ============================================================
 //  PRODUCT FILTERING & RENDERING
@@ -231,13 +271,7 @@ function renderProducts() {
 
   document.getElementById('appContainer').innerHTML = html;
   attachAddToCartEvents();
-
-  document.querySelectorAll('.page-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      currentPageNum = parseInt(btn.dataset.page);
-      renderProducts();
-    });
-  });
+  attachPaginationEvents();
 }
 
 function attachAddToCartEvents() {
@@ -255,6 +289,15 @@ function attachAddToCartEvents() {
   });
 }
 
+function attachPaginationEvents() {
+  document.querySelectorAll('.page-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentPageNum = parseInt(btn.dataset.page);
+      renderProducts();
+    });
+  });
+}
+
 // ============================================================
 //  PAGE RENDERERS (Home, About, Contact)
 // ============================================================
@@ -264,7 +307,7 @@ function renderHome() {
 
   let html = `
     <div class="home-container">
-      <div style="background:rgba(255,255,255,0.92); padding:16px; border-radius:16px;">
+      <div style="background:rgba(255,255,255,0.92); padding:20px; border-radius:15px;">
         <div class="deal-banner">
           <h2>FLASH SALE: UP TO 25% OFF</h2>
           <p>Use code: RATIBU25 | Free shipping on orders over UGX 1M</p>
@@ -292,9 +335,9 @@ function renderHome() {
           `).join('')}
         </div>
         <div class="mv-grid">
-          <div class="mv-card"><i class="fas fa-bullhorn"></i><h3>Our Mission</h3><p>Bring affordable & trendy fashion to every Ugandan.</p></div>
-          <div class="mv-card"><i class="fas fa-globe-africa"></i><h3>Vision</h3><p>Africa's leading modest & modern fashion hub.</p></div>
-          <div class="mv-card"><i class="fas fa-heart"></i><h3>Goal</h3><p>Empower confidence through style & quality.</p></div>
+          <div class="mv-card"><i class="fas fa-bullhorn fa-2x"></i><h3>Our Mission</h3><p>Bring affordable & trendy fashion to every Ugandan.</p></div>
+          <div class="mv-card"><i class="fas fa-globe-africa fa-2x"></i><h3>Vision</h3><p>Africa's leading modest & modern fashion hub.</p></div>
+          <div class="mv-card"><i class="fas fa-heart fa-2x"></i><h3>Goal</h3><p>Empower confidence through style & quality.</p></div>
         </div>
       </div>
     </div>
@@ -307,9 +350,18 @@ function renderHome() {
 function renderAbout() {
   const html = `
     <div class="mv-grid">
-      <div class="mv-card"><h2>📖 Our Story</h2><p>AHMEDZHUB began in Namasuba with a passion for diverse fashion — from office elegance to modest luxury.</p></div>
-      <div class="mv-card"><h2>👥 Our Customers</h2><p>We serve women & men who love quality, modesty and trend.</p></div>
-      <div class="mv-card"><h2>🤝 The Team</h2><p>Musaazi Ratibu (Founder), Jengwant Desmond (Design Curator), Mrs.Jannat (Customer Love)</p></div>
+      <div class="mv-card">
+        <h2>📖 Our Story</h2>
+        <p>AHMEDZHUB began in Namasuba with a passion for diverse fashion — from office elegance to modest luxury.</p>
+      </div>
+      <div class="mv-card">
+        <h2>👥 Our Customers</h2>
+        <p>We serve women & men who love quality, modesty and trend.</p>
+      </div>
+      <div class="mv-card">
+        <h2>🤝 The Team</h2>
+        <p>Musaazi Ratibu (Founder), Jengwant Desmond (Design Curator), Mrs.Jannat (Customer Love)</p>
+      </div>
     </div>
   `;
   document.getElementById('appContainer').innerHTML = html;
@@ -323,7 +375,7 @@ function renderContact() {
         <p>Phone: 0200 804 020</p>
         <p>Email: care@ahmedstyle.ug</p>
         <p>📍 Kampala, Acacia Mall, Level 2</p>
-        <iframe width="100%" height="220" style="border:0; border-radius:12px;" loading="lazy" src="https://maps.google.com/maps?q=kampala&t=&z=13&ie=UTF8&iwloc=&output=embed"></iframe>
+        <iframe width="100%" height="220" style="border:0" loading="lazy" src="https://maps.google.com/maps?q=kampala&t=&z=13&ie=UTF8&iwloc=&output=embed"></iframe>
         <p>Chat with us live 7am-9pm</p>
       </div>
     </div>
@@ -387,19 +439,18 @@ function refreshAdminDashboard() {
   document.getElementById('statUsers').innerText = usersList.length + 1;
 
   const ordersHtml = orders.slice(0, 8).map(o => `
-    <div style="border-bottom:1px solid #eee; padding:5px; font-size:14px;">
+    <div style="border-bottom:1px solid #eee; padding:5px;">
       <b>#${o.id}</b> ${o.user} - UGX ${o.total.toLocaleString()} 
-      <small>${new Date(o.date).toLocaleDateString()}</small>
-      <span style="background:#410303;color:white;padding:2px 8px;border-radius:12px;font-size:11px;margin-left:6px;">${o.payment || 'N/A'}</span>
+      <small>${new Date(o.date).toLocaleDateString()} (${o.payment || 'N/A'})</small>
     </div>
   `).join('');
   document.getElementById('adminOrdersList').innerHTML = ordersHtml || "<p>No orders yet</p>";
 
-  const msgs = chatMessages.map(m => `<div style="font-size:14px;"><b>${m.sender}:</b> ${m.text}</div>`).join('');
+  const msgs = chatMessages.map(m => `<div><b>${m.sender}:</b> ${m.text}</div>`).join('');
   document.getElementById('adminChatMessages').innerHTML = msgs;
 
   const productHtml = allProducts.map(p => `
-    <div style="font-size:13px; padding:4px 0; border-bottom:1px solid #f0ece8;">${p.name} (${p.category}) - UGX ${p.price.toLocaleString()}</div>
+    <div>${p.name} (${p.category}) - UGX ${p.price.toLocaleString()}</div>
   `).join('');
   document.getElementById('adminProductList').innerHTML = productHtml;
 }
@@ -410,7 +461,7 @@ function refreshAdminDashboard() {
 function updateChatWidget() {
   const box = document.getElementById('chatMessagesDisplay');
   if (box) {
-    box.innerHTML = chatMessages.map(m => `<div style="font-size:14px; margin-bottom:4px;"><b>${m.sender}:</b> ${m.text}</div>`).join('');
+    box.innerHTML = chatMessages.map(m => `<div><b>${m.sender}:</b> ${m.text}</div>`).join('');
   }
 }
 
@@ -419,7 +470,7 @@ function updateChatWidget() {
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
 
-  // ----- Auth -----
+  // Auth
   document.getElementById('submitAuthBtn').addEventListener('click', () => {
     const name = document.getElementById('authName').value;
     const email = document.getElementById('authEmail').value;
@@ -436,38 +487,18 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('authModal').style.display = 'none';
   });
 
-  // ----- Cart -----
+  // Cart
   document.getElementById('cartIconBtn').addEventListener('click', () => {
     document.getElementById('cartSidebar').classList.add('open');
   });
   document.getElementById('closeCartBtn').addEventListener('click', () => {
     document.getElementById('cartSidebar').classList.remove('open');
+    // Reset payment section
+    document.getElementById('paymentSection').style.display = 'none';
+    document.getElementById('checkoutButton').style.display = 'block';
   });
 
-  // ----- Checkout (captures payment method) -----
-  document.getElementById('checkoutButton').addEventListener('click', () => {
-    if (cart.length === 0) {
-      alert("Add items to your bag first ❤️");
-      return;
-    }
-    if (!currentUser) {
-      alert("Please login to complete purchase");
-      openAuthModal();
-      return;
-    }
-
-    // Get selected payment method
-    const selectedPayment = document.querySelector('input[name="payment"]:checked');
-    const paymentMethod = selectedPayment ? selectedPayment.value : "Mobile Money (MTN/Airtel)";
-
-    const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
-    generateReceipt(total, cart, paymentMethod);
-    cart = [];
-    saveCart();
-    document.getElementById('cartSidebar').classList.remove('open');
-  });
-
-  // ----- Navigation (pages) -----
+  // Navigation pages
   document.querySelectorAll('[data-page]').forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
@@ -480,7 +511,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // ----- Navigation (categories) -----
+  // Category links
   document.querySelectorAll('[data-category]').forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
@@ -491,7 +522,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // ----- Search -----
+  // Search
   document.getElementById('searchBtn').addEventListener('click', () => {
     currentSearch = document.getElementById('searchInput').value;
     currentCategory = null;
@@ -499,7 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderProducts();
   });
 
-  // ----- Admin Dashboard -----
+  // Admin dashboard
   document.getElementById('adminDashboardLink').addEventListener('click', () => {
     if (currentUser?.isAdmin) {
       refreshAdminDashboard();
@@ -508,11 +539,11 @@ document.addEventListener('DOMContentLoaded', () => {
       alert("Admin access only");
     }
   });
-
   document.getElementById('closeAdminDashboardBtn').addEventListener('click', () => {
     document.getElementById('adminDashboardModal').style.display = 'none';
   });
 
+  // Admin reply
   document.getElementById('sendAdminReplyBtn').addEventListener('click', () => {
     const reply = document.getElementById('adminReplyInput').value;
     if (reply && currentUser?.isAdmin) {
@@ -524,16 +555,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ----- Chat widget -----
+  // Chat widget
   document.getElementById('openChatBtn').addEventListener('click', () => {
     document.getElementById('chatWidget').style.display = 'flex';
     updateChatWidget();
   });
-
   document.querySelector('.chat-header').addEventListener('click', () => {
     document.getElementById('chatWidget').style.display = 'none';
   });
-
   document.getElementById('sendChatMsgBtn').addEventListener('click', () => {
     const msg = document.getElementById('chatMsgInput').value;
     if (msg && currentUser) {
@@ -547,7 +576,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ----- Initialise -----
+  // Initialize app
   const storedUser = localStorage.getItem('currentUser');
   if (storedUser) {
     currentUser = JSON.parse(storedUser);
@@ -560,7 +589,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderHome();
   updateCartUI();
 
-  // Update delivery estimate
+  // Delivery estimate update
   setInterval(() => {
     const d = new Date();
     d.setDate(d.getDate() + 2);
