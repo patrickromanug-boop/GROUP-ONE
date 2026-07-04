@@ -51,12 +51,21 @@ const allProducts = [
   { id: 45, name: "Easy Freash Boy style ", price: 70000, category: "shoes", img: "images/shoes/sneakers/IMG_5013.JPG", newArrival: true },
 ];
 
+// Brand constants — kept in one place so they're consistent everywhere on the site
+const BRAND = {
+  name: "AHMEDZ HUB",
+  supportEmail: "care@ahmedzhub.ug",
+  supportPhone: "0200 804 020",
+  whatsapp: "256700000000", // TODO: replace with the real business WhatsApp number
+  address: "Acacia Mall, Level 2, Kampala",
+};
+
 // ============================================================
 //  STATE
 // ============================================================
 let currentUser = null;
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
-let currentCategory = null;
+let currentCategory = null;   // null = all
 let currentSearch = "";
 let currentPageNum = 1;
 const ITEMS_PER_PAGE = 15;
@@ -65,7 +74,7 @@ let chatMessages = JSON.parse(localStorage.getItem('chatMessages')) || [
   { sender: "AHMEDZHUB Support", text: "Hello! Need fashion advice? Ask us!", timestamp: Date.now() }
 ];
 
-const ADMIN_EMAIL = "admin@modastyle.com";
+const ADMIN_EMAIL = "admin@ahmedzhub.ug";
 const ADMIN_PASS = "admin123";
 const ADMIN_NAME = "Style Admin";
 
@@ -91,9 +100,6 @@ function renderCartSidebar() {
     container.innerHTML = "<p>Your bag is empty ✨</p>";
     document.getElementById('cartTotal').innerHTML = "Total: UGX 0";
     document.getElementById('upsellSuggestions').innerHTML = "";
-    // Hide payment section if visible
-    document.getElementById('paymentSection').style.display = 'none';
-    document.getElementById('checkoutButton').style.display = 'block';
     return;
   }
 
@@ -115,7 +121,7 @@ function renderCartSidebar() {
   document.getElementById('cartTotal').innerHTML = `Total: UGX ${total.toLocaleString()}`;
   container.innerHTML = html;
 
-  // Upsell suggestions
+  // Upsell suggestions — show 2 items not already in the cart
   const cartIds = cart.map(i => i.id);
   const upsell = allProducts.filter(p => !cartIds.includes(p.id)).slice(0, 2);
   const upsellHtml = upsell.map(p => `
@@ -126,18 +132,14 @@ function renderCartSidebar() {
   `).join('');
   document.getElementById('upsellSuggestions').innerHTML = upsellHtml;
 
-  // Event listeners for remove
   document.querySelectorAll('.remove-item').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = parseInt(btn.dataset.id);
       cart = cart.filter(i => i.id !== id);
       saveCart();
-      renderCartSidebar();
-      updateCartUI();
     });
   });
 
-  // Event listeners for upsell add
   document.querySelectorAll('.addUpsell').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = parseInt(btn.dataset.id);
@@ -147,32 +149,28 @@ function renderCartSidebar() {
       if (exist) exist.qty += 1;
       else cart.push({ id, name, price, qty: 1 });
       saveCart();
-      renderCartSidebar();
-      updateCartUI();
     });
   });
 }
 
 // ============================================================
-//  CHECKOUT / RECEIPT with Payment
+//  CHECKOUT / RECEIPT
 // ============================================================
-function generateReceipt(orderTotal, items, paymentMethod) {
+function generateReceipt(orderTotal, items) {
   const receipt = `
-🏷️ AHMEDZ HUB RECEIPT 🏷️
+🏷️ ${BRAND.name} RECEIPT 🏷️
 ━━━━━━━━━━━━━━━━━━━━━
 Date: ${new Date().toLocaleString()}
 Customer: ${currentUser?.name || 'Guest'} (${currentUser?.email || 'guest'})
-Payment: ${paymentMethod}
 ━━━━━━━━━━━━━━━━━━━━━
 Items:
 ${items.map(i => `  ✦ ${i.name} x${i.qty} = UGX ${(i.price * i.qty).toLocaleString()}`).join('\n')}
 ━━━━━━━━━━━━━━━━━━━━━
 TOTAL: UGX ${orderTotal.toLocaleString()}
 💳 Payment Successful!
-Thank you for shopping at AHMEDZ HUB!`;
+Thank you for shopping at ${BRAND.name}!`;
   alert(receipt);
 
-  // Store order
   const orders = JSON.parse(localStorage.getItem('orders')) || [];
   orders.unshift({
     id: Date.now(),
@@ -180,50 +178,12 @@ Thank you for shopping at AHMEDZ HUB!`;
     email: currentUser?.email || 'guest',
     items: [...items],
     total: orderTotal,
-    payment: paymentMethod,
     date: new Date().toISOString()
   });
   localStorage.setItem('orders', JSON.stringify(orders));
 
-  // Clear cart
-  cart = [];
-  saveCart();
-  document.getElementById('cartSidebar').classList.remove('open');
   if (currentUser?.isAdmin) refreshAdminDashboard();
 }
-
-// Handle checkout button - show payment selection
-document.getElementById('checkoutButton')?.addEventListener('click', () => {
-  if (cart.length === 0) {
-    alert("Add items to your bag first ❤️");
-    return;
-  }
-  if (!currentUser) {
-    alert("Please login to complete purchase");
-    openAuthModal();
-    return;
-  }
-  // Show payment section and hide checkout button
-  document.getElementById('paymentSection').style.display = 'block';
-  document.getElementById('checkoutButton').style.display = 'none';
-});
-
-// Confirm payment and finalize order
-document.getElementById('confirmPaymentBtn')?.addEventListener('click', () => {
-  const selected = document.querySelector('input[name="paymentMethod"]:checked');
-  if (!selected) {
-    alert("Please select a payment method.");
-    return;
-  }
-  const paymentMethod = selected.value;
-  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  generateReceipt(total, cart, paymentMethod);
-  // Reset payment section visibility
-  document.getElementById('paymentSection').style.display = 'none';
-  document.getElementById('checkoutButton').style.display = 'block';
-  // Close sidebar after receipt
-  document.getElementById('cartSidebar').classList.remove('open');
-});
 
 // ============================================================
 //  PRODUCT FILTERING & RENDERING
@@ -240,6 +200,17 @@ function getFilteredProducts() {
   return filtered;
 }
 
+function productCardHTML(p) {
+  return `
+    <div class="product-card">
+      <div class="product-img"><img src="${p.img}" alt="${p.name}"></div>
+      <div class="product-title">${p.name}</div>
+      <div class="price">UGX ${p.price.toLocaleString()}</div>
+      <button class="btn-add" data-id="${p.id}" data-name="${p.name}" data-price="${p.price}">Add to Cart</button>
+    </div>
+  `;
+}
+
 function renderProducts() {
   const filtered = getFilteredProducts();
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
@@ -247,22 +218,8 @@ function renderProducts() {
   const paginated = filtered.slice(start, start + ITEMS_PER_PAGE);
 
   let html = `<div class="section-title">${currentCategory ? currentCategory.toUpperCase() + " Collection" : "All Products"}</div>`;
-  html += `<div class="product-grid">`;
-  paginated.forEach(p => {
-    html += `
-      <div class="product-card">
-        <div class="product-img">
-          <img src="${p.img}" alt="${p.name}">
-        </div>
-        <div class="product-title">${p.name}</div>
-        <div class="price">UGX ${p.price.toLocaleString()}</div>
-        <button class="btn-add" data-id="${p.id}" data-name="${p.name}" data-price="${p.price}">Add to Cart</button>
-      </div>
-    `;
-  });
-  html += `</div>`;
+  html += `<div class="product-grid">${paginated.map(productCardHTML).join('')}</div>`;
 
-  // Pagination
   html += `<div class="pagination">`;
   for (let i = 1; i <= totalPages; i++) {
     html += `<button class="page-btn ${i === currentPageNum ? 'active' : ''}" data-page="${i}">${i}</button>`;
@@ -271,88 +228,119 @@ function renderProducts() {
 
   document.getElementById('appContainer').innerHTML = html;
   attachAddToCartEvents();
-  attachPaginationEvents();
-}
 
-function attachAddToCartEvents() {
-  document.querySelectorAll('.btn-add').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = parseInt(btn.dataset.id);
-      const name = btn.dataset.name;
-      const price = parseInt(btn.dataset.price);
-      const exist = cart.find(i => i.id === id);
-      if (exist) exist.qty += 1;
-      else cart.push({ id, name, price, qty: 1 });
-      saveCart();
-      alert(`✨ ${name} added to your bag!`);
-    });
-  });
-}
-
-function attachPaginationEvents() {
   document.querySelectorAll('.page-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       currentPageNum = parseInt(btn.dataset.page);
       renderProducts();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   });
 }
 
 // ============================================================
-//  PAGE RENDERERS (Home, About, Contact)
+//  PAGE RENDERERS — Home, About, Why Us, Contact
 // ============================================================
+
+// --- HOME: Hero Banner + Deal + Featured + New Arrivals + Why Choose Us ---
 function renderHome() {
   const featured = allProducts.filter(p => p.featured).slice(0, 6);
   const newItems = allProducts.filter(p => p.newArrival).slice(0, 4);
 
-  let html = `
+  const html = `
     <div class="home-container">
-      <div style="background:rgba(255,255,255,0.92); padding:20px; border-radius:15px;">
-        <div class="deal-banner">
-          <h2>FLASH SALE: UP TO 25% OFF</h2>
-          <p>Use code: RATIBU25 | Free shipping on orders over UGX 1M</p>
+
+      <!-- HERO BANNER + CALL TO ACTION -->
+      <section class="hero-banner" aria-label="Welcome banner">
+        <h1>Elegance & Comfort, Made for You</h1>
+        <p>Quality clothing, accessories and shoes — curated for Uganda, delivered to your door.</p>
+        <div class="hero-cta-group">
+          <button id="heroShopBtn" class="hero-btn primary"><i class="fas fa-bag-shopping"></i> Shop Now</button>
+          <a href="https://wa.me/${BRAND.whatsapp}" target="_blank" rel="noopener" class="hero-btn secondary">
+            <i class="fa-brands fa-whatsapp"></i> Order on WhatsApp
+          </a>
         </div>
-        <div class="section-title">Editor's Pick (Featured)</div>
-        <div class="product-grid">
-          ${featured.map(p => `
-            <div class="product-card">
-              <div class="product-img"><img src="${p.img}" alt="${p.name}"></div>
-              <div class="product-title">${p.name}</div>
-              <div class="price">UGX ${p.price.toLocaleString()}</div>
-              <button class="btn-add" data-id="${p.id}" data-name="${p.name}" data-price="${p.price}">Add to Cart</button>
-            </div>
-          `).join('')}
-        </div>
-        <div class="section-title">Just Landed</div>
-        <div class="product-grid">
-          ${newItems.map(p => `
-            <div class="product-card">
-              <div class="product-img"><img src="${p.img}" alt="${p.name}"></div>
-              <div class="product-title">${p.name}</div>
-              <div class="price">UGX ${p.price.toLocaleString()}</div>
-              <button class="btn-add" data-id="${p.id}" data-name="${p.name}" data-price="${p.price}">Add to Cart</button>
-            </div>
-          `).join('')}
-        </div>
-        <div class="mv-grid">
-          <div class="mv-card"><i class="fas fa-bullhorn fa-2x"></i><h3>Our Mission</h3><p>Bring affordable & trendy fashion to every Ugandan.</p></div>
-          <div class="mv-card"><i class="fas fa-globe-africa fa-2x"></i><h3>Vision</h3><p>Africa's leading modest & modern fashion hub.</p></div>
-          <div class="mv-card"><i class="fas fa-heart fa-2x"></i><h3>Goal</h3><p>Empower confidence through style & quality.</p></div>
-        </div>
+      </section>
+
+      <div class="deal-banner">
+        <h2>FLASH SALE: UP TO 25% OFF</h2>
+        <p>Use code: RATIBU25 | Free shipping on orders over UGX 1M</p>
       </div>
+
+      <div class="section-title">Editor's Pick (Featured)</div>
+      <div class="product-grid">${featured.map(productCardHTML).join('')}</div>
+
+      <div class="section-title">Just Landed</div>
+      <div class="product-grid">${newItems.map(productCardHTML).join('')}</div>
+
+      <!-- WHY CHOOSE US -->
+      <div id="whyUsSection">
+        ${whyUsSectionHTML()}
+      </div>
+
+      <div class="mv-grid">
+        <div class="mv-card"><i class="fas fa-bullhorn fa-2x"></i><h3>Our Mission</h3><p>Bring affordable & trendy fashion to every Ugandan.</p></div>
+        <div class="mv-card"><i class="fas fa-globe-africa fa-2x"></i><h3>Vision</h3><p>Africa's leading modest & modern fashion hub.</p></div>
+        <div class="mv-card"><i class="fas fa-heart fa-2x"></i><h3>Goal</h3><p>Empower confidence through style & quality.</p></div>
+      </div>
+
     </div>
   `;
 
   document.getElementById('appContainer').innerHTML = html;
   attachAddToCartEvents();
+
+  // Hero "Shop Now" scrolls to & shows the full catalog
+  document.getElementById('heroShopBtn').addEventListener('click', () => {
+    currentCategory = null;
+    currentSearch = "";
+    currentPageNum = 1;
+    renderProducts();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
 }
 
+// --- Reusable "Why Choose Us" markup, used on Home and its own nav entry ---
+function whyUsSectionHTML() {
+  return `
+    <div class="section-title">Why Choose ${BRAND.name}</div>
+    <div class="why-us-grid">
+      <div class="why-us-card">
+        <i class="fas fa-award"></i>
+        <h4>Authentic Quality</h4>
+        <p>Every piece is checked for quality before it reaches you — no surprises.</p>
+      </div>
+      <div class="why-us-card">
+        <i class="fas fa-truck-fast"></i>
+        <h4>Nationwide Delivery</h4>
+        <p>From Kampala to Gulu, Mbarara and beyond — we deliver countrywide.</p>
+      </div>
+      <div class="why-us-card">
+        <i class="fas fa-mobile-screen-button"></i>
+        <h4>Easy Mobile Payments</h4>
+        <p>Pay with MTN Mobile Money, Airtel Money, card, or cash on delivery.</p>
+      </div>
+      <div class="why-us-card">
+        <i class="fa-brands fa-whatsapp"></i>
+        <h4>Real Human Support</h4>
+        <p>Chat with us directly on WhatsApp — quick replies, no bots pretending to be human.</p>
+      </div>
+      <div class="why-us-card">
+        <i class="fas fa-rotate-left"></i>
+        <h4>Easy Exchanges</h4>
+        <p>Wrong size? Swap it hassle-free within 7 days of delivery.</p>
+      </div>
+    </div>
+  `;
+}
+
+// --- ABOUT US ---
 function renderAbout() {
   const html = `
     <div class="mv-grid">
       <div class="mv-card">
         <h2>📖 Our Story</h2>
-        <p>AHMEDZHUB began in Namasuba with a passion for diverse fashion — from office elegance to modest luxury.</p>
+        <p>${BRAND.name} began in Namasuba with a passion for diverse fashion — from office elegance to modest luxury.</p>
       </div>
       <div class="mv-card">
         <h2>👥 Our Customers</h2>
@@ -360,240 +348,40 @@ function renderAbout() {
       </div>
       <div class="mv-card">
         <h2>🤝 The Team</h2>
-        <p>Musaazi Ratibu (Founder), Jengwant Desmond (Design Curator), Mrs.Jannat (Customer Love)</p>
+        <p>Musaazi Ratibu (Founder), Jengwant Desmond (Design Curator), Mrs. Jannat (Customer Love)</p>
       </div>
     </div>
   `;
   document.getElementById('appContainer').innerHTML = html;
 }
 
+// --- WHY US (standalone nav page — reuses the same section) ---
+function renderWhyUs() {
+  document.getElementById('appContainer').innerHTML = `<div class="mv-grid" style="display:block;">${whyUsSectionHTML()}</div>`;
+}
+
+// --- CONTACT US ---
 function renderContact() {
   const html = `
-    <div class="mv-grid">
-      <div class="mv-card">
-        <h2>📞 Free Toll</h2>
-        <p>Phone: 0200 804 020</p>
-        <p>Email: care@ahmedstyle.ug</p>
-        <p>📍 Kampala, Acacia Mall, Level 2</p>
-        <iframe width="100%" height="220" style="border:0" loading="lazy" src="https://maps.google.com/maps?q=kampala&t=&z=13&ie=UTF8&iwloc=&output=embed"></iframe>
+    <div class="mv-grid" style="flex-direction: column;">
+      <div class="mv-card" style="text-align:left;">
+        <h2>📞 Get in Touch</h2>
+        <p>Phone: ${BRAND.supportPhone}</p>
+        <p>Email: ${BRAND.supportEmail}</p>
+        <p>📍 ${BRAND.address}</p>
         <p>Chat with us live 7am-9pm</p>
+
+        <div class="contact-social">
+          <a href="https://wa.me/${BRAND.whatsapp}" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+          <a href="https://instagram.com/ahmedzhub" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+          <a href="https://facebook.com/ahmedzhub" target="_blank" rel="noopener" aria-label="Facebook"><i class="fa-brands fa-facebook"></i></a>
+          <a href="https://tiktok.com/@ahmedzhub" target="_blank" rel="noopener" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+        </div>
+
+        <iframe width="100%" height="220" style="border:0; margin-top:16px; border-radius:12px;" loading="lazy"
+          src="https://maps.google.com/maps?q=kampala&t=&z=13&ie=UTF8&iwloc=&output=embed"></iframe>
       </div>
-    </div>
-  `;
-  document.getElementById('appContainer').innerHTML = html;
-}
 
-// ============================================================
-//  AUTHENTICATION
-// ============================================================
-function handleLogin(email, password, name) {
-  if (email === ADMIN_EMAIL && password === ADMIN_PASS) {
-    currentUser = { name: ADMIN_NAME, email: ADMIN_EMAIL, isAdmin: true };
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-    document.getElementById('userNameDisplay').innerHTML = '👑 Admin';
-    document.getElementById('adminDashboardLink').style.display = 'inline-block';
-    alert(`Welcome Admin ${ADMIN_NAME}! Full access.`);
-    document.getElementById('authModal').style.display = 'none';
-    refreshAdminDashboard();
-    document.getElementById('adminDashboardModal').style.display = 'flex';
-    return true;
-  } else if (email && password && name) {
-    currentUser = { name, email, isAdmin: false };
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-    document.getElementById('userNameDisplay').innerHTML = `👤 ${name.split(' ')[0]}`;
-    document.getElementById('adminDashboardLink').style.display = 'none';
-    alert(`Welcome ${name}, enjoy shopping!`);
-    document.getElementById('authModal').style.display = 'none';
-    return true;
-  } else {
-    alert("Please fill all fields");
-    return false;
-  }
-}
-
-function openAuthModal() {
-  document.getElementById('authModal').style.display = 'flex';
-}
-
-function logout() {
-  currentUser = null;
-  localStorage.removeItem('currentUser');
-  document.getElementById('userNameDisplay').innerHTML = 'Login';
-  document.getElementById('adminDashboardLink').style.display = 'none';
-  alert('Logged out');
-  renderHome();
-}
-
-// ============================================================
-//  ADMIN DASHBOARD
-// ============================================================
-function refreshAdminDashboard() {
-  if (!currentUser?.isAdmin) return;
-
-  const orders = JSON.parse(localStorage.getItem('orders')) || [];
-  const totalRev = orders.reduce((s, o) => s + o.total, 0);
-  document.getElementById('statOrders').innerText = orders.length;
-  document.getElementById('statRevenue').innerHTML = totalRev.toLocaleString();
-
-  const usersList = JSON.parse(localStorage.getItem('registeredUsers')) || [];
-  document.getElementById('statUsers').innerText = usersList.length + 1;
-
-  const ordersHtml = orders.slice(0, 8).map(o => `
-    <div style="border-bottom:1px solid #eee; padding:5px;">
-      <b>#${o.id}</b> ${o.user} - UGX ${o.total.toLocaleString()} 
-      <small>${new Date(o.date).toLocaleDateString()} (${o.payment || 'N/A'})</small>
-    </div>
-  `).join('');
-  document.getElementById('adminOrdersList').innerHTML = ordersHtml || "<p>No orders yet</p>";
-
-  const msgs = chatMessages.map(m => `<div><b>${m.sender}:</b> ${m.text}</div>`).join('');
-  document.getElementById('adminChatMessages').innerHTML = msgs;
-
-  const productHtml = allProducts.map(p => `
-    <div>${p.name} (${p.category}) - UGX ${p.price.toLocaleString()}</div>
-  `).join('');
-  document.getElementById('adminProductList').innerHTML = productHtml;
-}
-
-// ============================================================
-//  CHAT WIDGET
-// ============================================================
-function updateChatWidget() {
-  const box = document.getElementById('chatMessagesDisplay');
-  if (box) {
-    box.innerHTML = chatMessages.map(m => `<div><b>${m.sender}:</b> ${m.text}</div>`).join('');
-  }
-}
-
-// ============================================================
-//  EVENT LISTENERS
-// ============================================================
-document.addEventListener('DOMContentLoaded', () => {
-
-  // Auth
-  document.getElementById('submitAuthBtn').addEventListener('click', () => {
-    const name = document.getElementById('authName').value;
-    const email = document.getElementById('authEmail').value;
-    const pass = document.getElementById('authPass').value;
-    handleLogin(email, pass, name);
-  });
-
-  document.getElementById('loginBtn').addEventListener('click', () => {
-    if (currentUser) logout();
-    else openAuthModal();
-  });
-
-  document.getElementById('closeAuthModal').addEventListener('click', () => {
-    document.getElementById('authModal').style.display = 'none';
-  });
-
-  // Cart
-  document.getElementById('cartIconBtn').addEventListener('click', () => {
-    document.getElementById('cartSidebar').classList.add('open');
-  });
-  document.getElementById('closeCartBtn').addEventListener('click', () => {
-    document.getElementById('cartSidebar').classList.remove('open');
-    // Reset payment section
-    document.getElementById('paymentSection').style.display = 'none';
-    document.getElementById('checkoutButton').style.display = 'block';
-  });
-
-  // Navigation pages
-  document.querySelectorAll('[data-page]').forEach(link => {
-    link.addEventListener('click', (e) => {
-      e.preventDefault();
-      const page = link.dataset.page;
-      currentCategory = null;
-      currentSearch = "";
-      if (page === "home") renderHome();
-      else if (page === "about") renderAbout();
-      else if (page === "contact") renderContact();
-    });
-  });
-
-  // Category links
-  document.querySelectorAll('[data-category]').forEach(link => {
-    link.addEventListener('click', (e) => {
-      e.preventDefault();
-      currentCategory = link.dataset.category;
-      currentSearch = "";
-      currentPageNum = 1;
-      renderProducts();
-    });
-  });
-
-  // Search
-  document.getElementById('searchBtn').addEventListener('click', () => {
-    currentSearch = document.getElementById('searchInput').value;
-    currentCategory = null;
-    currentPageNum = 1;
-    renderProducts();
-  });
-
-  // Admin dashboard
-  document.getElementById('adminDashboardLink').addEventListener('click', () => {
-    if (currentUser?.isAdmin) {
-      refreshAdminDashboard();
-      document.getElementById('adminDashboardModal').style.display = 'flex';
-    } else {
-      alert("Admin access only");
-    }
-  });
-  document.getElementById('closeAdminDashboardBtn').addEventListener('click', () => {
-    document.getElementById('adminDashboardModal').style.display = 'none';
-  });
-
-  // Admin reply
-  document.getElementById('sendAdminReplyBtn').addEventListener('click', () => {
-    const reply = document.getElementById('adminReplyInput').value;
-    if (reply && currentUser?.isAdmin) {
-      chatMessages.push({ sender: `Admin (${currentUser.name})`, text: reply });
-      localStorage.setItem('chatMessages', JSON.stringify(chatMessages));
-      refreshAdminDashboard();
-      updateChatWidget();
-      document.getElementById('adminReplyInput').value = '';
-    }
-  });
-
-  // Chat widget
-  document.getElementById('openChatBtn').addEventListener('click', () => {
-    document.getElementById('chatWidget').style.display = 'flex';
-    updateChatWidget();
-  });
-  document.querySelector('.chat-header').addEventListener('click', () => {
-    document.getElementById('chatWidget').style.display = 'none';
-  });
-  document.getElementById('sendChatMsgBtn').addEventListener('click', () => {
-    const msg = document.getElementById('chatMsgInput').value;
-    if (msg && currentUser) {
-      chatMessages.push({ sender: currentUser.name, text: msg });
-      localStorage.setItem('chatMessages', JSON.stringify(chatMessages));
-      updateChatWidget();
-      document.getElementById('chatMsgInput').value = '';
-      if (currentUser.isAdmin) refreshAdminDashboard();
-    } else if (!currentUser) {
-      alert('Login to chat with support');
-    }
-  });
-
-  // Initialize app
-  const storedUser = localStorage.getItem('currentUser');
-  if (storedUser) {
-    currentUser = JSON.parse(storedUser);
-    document.getElementById('userNameDisplay').innerHTML = currentUser.isAdmin ? '👑 Admin' : `👤 ${currentUser.name.split(' ')[0]}`;
-    if (currentUser.isAdmin) {
-      document.getElementById('adminDashboardLink').style.display = 'inline-block';
-    }
-  }
-
-  renderHome();
-  updateCartUI();
-
-  // Delivery estimate update
-  setInterval(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 2);
-    const el = document.getElementById('deliveryEstimate');
-    if (el) el.innerHTML = `🚚 Est. delivery: ${d.toDateString()}`;
-  }, 1000);
-});
+      <div class="mv-card" style="text-align:left;">
+        <h2>✉️ Send Us a Message</h2>
+        <form id="contactForm"
