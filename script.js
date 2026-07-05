@@ -147,7 +147,7 @@ function attachAddEvents(){
   });
 }
 
-// ---------- NEW HOMEPAGE with Hero, Services, Why Choose Us ----------
+// ---------- HOMEPAGE with Hero, Services, Why Choose Us ----------
 function renderHome(){
   let featured = allProducts.filter(p=>p.featured).slice(0,6);
   let newItems = allProducts.filter(p=>p.newArrival).slice(0,4);
@@ -210,7 +210,7 @@ function renderHome(){
       </div>
     </div>
 
-    <!-- FLASH SALE BANNER (existing) -->
+    <!-- FLASH SALE BANNER -->
     <div class="deal-banner">
       <h2>FLASH SALE: UP TO 25% OFF</h2>
       <p>Use code: RATIBU25 | Free shipping on orders over UGX 1M</p>
@@ -223,7 +223,7 @@ function renderHome(){
     <div class="section-title">Just Landed</div>
     <div class="product-grid">${newItems.map(p=>`<div class="product-card"><div class="product-img"><img src="${p.img}" alt="${p.name}"></div><div class="product-title">${p.name}</div><div class="price">UGX ${p.price.toLocaleString()}</div><button class="btn-add" data-id="${p.id}" data-name="${p.name}" data-price="${p.price}">Add to Cart</button></div>`).join('')}</div>
 
-    <!-- MISSION/VISION (existing) -->
+    <!-- MISSION/VISION -->
     <div class="mv-grid">
       <div class="mv-card"><i class="fas fa-bullhorn fa-2x"></i><h3>Our Mission</h3><p>Bring affordable & trendy fashion to every Ugandan.</p></div>
       <div class="mv-card"><i class="fas fa-globe-africa fa-2x"></i><h3>Vision</h3><p>Africa's leading modest & modern fashion hub.</p></div>
@@ -234,7 +234,6 @@ function renderHome(){
   document.getElementById('appContainer').innerHTML = html;
   attachAddEvents();
 
-  // Hero CTA button – scroll to products or go to product listing
   document.getElementById('heroShopBtn')?.addEventListener('click', (e) => {
     e.preventDefault();
     currentCategory = null;
@@ -244,7 +243,7 @@ function renderHome(){
   });
 }
 
-// ---------- ABOUT US – now about Group 1 ----------
+// ---------- ABOUT US – Group 1 (without team member names) ----------
 function renderAbout(){
     const html=`
     <div class="mv-grid" style="flex-direction:column; text-align:center;">
@@ -252,14 +251,6 @@ function renderAbout(){
         <h2>👥 About Group 1</h2>
         <p><strong>We are a team of passionate developers and designers</strong> who collaborated to build this e‑commerce platform for AHMEDZ HUB.</p>
         <p>Our mission is to apply our skills in web development, UI/UX, and business logic to create a seamless shopping experience.</p>
-        <br>
-        <h3>👨‍💻 Team Members</h3>
-        <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:20px; margin-top:15px;">
-          <div><strong>Musaazi Ratibu</strong> – Founder & Lead Developer</div>
-          <div><strong>Jengwant Desmond</strong> – Design Curator</div>
-          <div><strong>Mrs. Jannat</strong> – Customer Experience</div>
-          <div><strong>And the entire Group 1</strong> – Quality Assurance & Testing</div>
-        </div>
         <br>
         <p>We believe in <strong>innovation, teamwork, and delivering value</strong> to both the brand and its customers.</p>
         <p style="margin-top:10px;"><em>“Building the future of Ugandan fashion, one line of code at a time.”</em></p>
@@ -282,7 +273,7 @@ function renderContact(){
     document.getElementById('appContainer').innerHTML = html;
 }
 
-// ---------- Authentication, Admin, Chat, etc. (unchanged) ----------
+// ---------- Authentication, Admin, Chat, etc. ----------
 function handleLogin(email, password, name){
   if(email === ADMIN_EMAIL && password === ADMIN_PASS){
     currentUser = { name: ADMIN_NAME, email: ADMIN_EMAIL, isAdmin: true };
@@ -350,5 +341,3 @@ document.getElementById('closeAuthModal')?.addEventListener('click',()=>document
 
 function init(){ let stored=localStorage.getItem('currentUser'); if(stored){ currentUser=JSON.parse(stored); document.getElementById('userNameDisplay').innerHTML=currentUser.isAdmin?'👑 Admin':`👤 ${currentUser.name.split(' ')[0]}`; if(currentUser.isAdmin) document.getElementById('adminDashboardLink').style.display='inline-block'; } renderHome(); updateCartUI(); setInterval(()=>{ let d=new Date(); d.setDate(d.getDate()+2); if(document.getElementById('deliveryEstimate')) document.getElementById('deliveryEstimate').innerHTML=`🚚 Est. delivery: ${d.toDateString()}`; },100); }
 init();
-
-// Fix duplicate category event (already handled above, but keep the extra code removed to avoid duplication)
